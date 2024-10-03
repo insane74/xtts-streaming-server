@@ -1,53 +1,83 @@
 # XTTS streaming server
+*Warning: XTTS-streaming-server doesn't support concurrent streaming requests, it's a demo server, not meant for production.*
 
-## Running the server
+https://github.com/coqui-ai/xtts-streaming-server/assets/17219561/7220442a-e88a-4288-8a73-608c4b39d06c
 
-To run a pre-built container (CUDA 11.7):
+
+## 1) Run the server
+
+### Use a pre-built image
+
+CUDA 12.1:
+
+```bash
+$ docker run --gpus=all -e COQUI_TOS_AGREED=1 --rm -p 8000:80 ghcr.io/coqui-ai/xtts-streaming-server:latest-cuda121
+```
+
+CUDA 11.8 (for older cards):
 
 ```bash
 $ docker run --gpus=all -e COQUI_TOS_AGREED=1 --rm -p 8000:80 ghcr.io/coqui-ai/xtts-streaming-server:latest
 ```
 
-CUDA 11.8 version (for newer cards, tested on 4060 and L4 instance)
+CPU (not recommended):
+
 ```bash
-$ docker run --gpus=all -e COQUI_TOS_AGREED=1 --rm -p 8000:80  ghcr.io/coqui-ai/xtts-streaming-server:latest-cuda118
+$ docker run -e COQUI_TOS_AGREED=1 --rm -p 8000:80 ghcr.io/coqui-ai/xtts-streaming-server:latest-cpu
 ```
 
-If you have already downloaded v1.1 model and like to use this server, and using Ubuntu, change your /home/YOUR_USER_NAME
+Run with a fine-tuned model:
+
+Make sure the model folder `/path/to/model/folder`  contains the following files:
+- `config.json`
+- `model.pth`
+- `vocab.json`
+
 ```bash
-$ docker run -v /home/YOUR_USER_NAME/.local/share/tts/tts_models--multilingual--multi-dataset--xtts_v1.1:/root/.local/share/tts/tts_models--multilingual--multi-dataset--xtts_v1.1 --env NVIDIA_DISABLE_REQUIRE=1 --gpus=all -e COQUI_TOS_AGREED=1  --rm -p 8000:80 ghcr.io/coqui-ai/xtts-streaming-server:latest-cuda118`
+$ docker run -v /path/to/model/folder:/app/tts_models --gpus=all -e COQUI_TOS_AGREED=1  --rm -p 8000:80 ghcr.io/coqui-ai/xtts-streaming-server:latest`
 ```
+
 Setting the `COQUI_TOS_AGREED` environment variable to `1` indicates you have read and agreed to
-the terms of the [CPML license](https://coqui.ai/cpml).
+the terms of the [CPML license](https://coqui.ai/cpml). (Fine-tuned XTTS models also are under the [CPML license](https://coqui.ai/cpml))
 
-## Testing the server
+### Build the image yourself
 
-1. Generate audio with the test script:
+To build the Docker container Pytorch 2.1 and CUDA 11.8 :
+
+`DOCKERFILE` may be `Dockerfile`, `Dockerfile.cpu`, `Dockerfile.cuda121`, or your own custom Dockerfile.
 
 ```bash
-$ cd test
+$ git clone git@github.com:coqui-ai/xtts-streaming-server.git
+$ cd xtts-streaming-server/server
+$ docker build -t xtts-stream . -f DOCKERFILE
+$ docker run --gpus all -e COQUI_TOS_AGREED=1 --rm -p 8000:80 xtts-stream
+```
+
+Setting the `COQUI_TOS_AGREED` environment variable to `1` indicates you have read and agreed to
+the terms of the [CPML license](https://coqui.ai/cpml). (Fine-tuned XTTS models also are under the [CPML license](https://coqui.ai/cpml))
+
+## 2) Testing the running server
+
+Once your Docker container is running, you can test that it's working properly. You will need to run the following code from a fresh terminal.
+
+### Clone `xtts-streaming-server` if you haven't already
+
+```bash
+$ git clone git@github.com:coqui-ai/xtts-streaming-server.git
+```
+
+### Using the gradio demo
+
+```bash
+$ cd xtts-streaming-server
+$ python -m pip install -r test/requirements.txt
+$ python demo.py
+```
+
+### Using the test script
+
+```bash
+$ cd xtts-streaming-server/test
 $ python -m pip install -r requirements.txt
 $ python test_streaming.py
 ```
-
-## Building the container
-
-1. To build the Docker container (Pytorch 2.01 Cuda 11.7) :
-
-```bash
-$ cd server
-$ docker build -t xtts-stream .
-```
-For Pytorch 2.1 and CUDA 11.8 version (when running set NVIDIA_DISABLE_REQUIRE=1 if you have Cuda < 11.8 drivers) 
-```bash
-$ cd server
-# docker build -t xtts-stream . -f Dockerfile.cuda118
-```
-2. Run the server container:
-
-```bash
-$ docker run --gpus=all -e COQUI_TOS_AGREED=1 --rm -p 8000:80 xtts-stream
-```
-
-Setting the `COQUI_TOS_AGREED` environment variable to `1` indicates you have read and agreed to
-the terms of the [CPML license](https://coqui.ai/cpml).
